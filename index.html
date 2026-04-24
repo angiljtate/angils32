@@ -322,6 +322,8 @@ const MAP_SPOTS=[
   {lat:19.2778,lng:-69.5028,label:'El Limón Waterfall',color:'#378ADD'}
 ];
 
+const FB_URL='https://las-terrenas-app-default-rtdb.firebaseio.com/tripdata.json';
+
 let myIndex=0,myName='Angil';
 let state={people:['Angil','Maggie','Morgan'],events:[],expenses:[],notes:[]};
 let nextId=100,saveTimer=null,mapReady=false;
@@ -335,9 +337,14 @@ function setWho(val){
 async function loadState(){
   setSyncStatus('syncing');
   try{
-    const res=await window.storage.get(STORAGE_KEY,true);
-    if(res&&res.value){
-      state=JSON.parse(res.value);
+    const res=await fetch(FB_URL);
+    const data=await res.json();
+    if(data){
+      state=data;
+      state.people=state.people||['Angil','Maggie','Morgan'];
+      state.events=state.events||[];
+      state.expenses=state.expenses||[];
+      state.notes=state.notes||[];
       const ids=[...state.events,...state.expenses,...state.notes].map(x=>x.id||0);
       nextId=ids.length?Math.max(...ids)+1:100;
     } else {
@@ -355,8 +362,10 @@ async function loadState(){
 
 async function doSave(){
   setSyncStatus('syncing');
-  try{await window.storage.set(STORAGE_KEY,JSON.stringify(state),true);setSyncStatus('synced');}
-  catch(e){setSyncStatus('error');}
+  try{
+    await fetch(FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+    setSyncStatus('synced');
+  }catch(e){setSyncStatus('error');}
 }
 function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(doSave,700);}
 function setSyncStatus(s){
@@ -368,9 +377,14 @@ function setSyncStatus(s){
 }
 setInterval(async()=>{
   try{
-    const res=await window.storage.get(STORAGE_KEY,true);
-    if(res&&res.value){
-      state=JSON.parse(res.value);
+    const res=await fetch(FB_URL);
+    const data=await res.json();
+    if(data){
+      state=data;
+      state.people=state.people||['Angil','Maggie','Morgan'];
+      state.events=state.events||[];
+      state.expenses=state.expenses||[];
+      state.notes=state.notes||[];
       const ids=[...state.events,...state.expenses,...state.notes].map(x=>x.id||0);
       if(ids.length)nextId=Math.max(nextId,Math.max(...ids)+1);
       renderAll();updatePeopleSelects();
